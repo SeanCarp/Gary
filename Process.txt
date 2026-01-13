@@ -1,0 +1,10 @@
+Flow:
+User input -> 
+	Intent Classifier ->
+		NER (Named Entity Recognition) -> 
+			Code Execution ->
+				Result (from API) ->
+					Rule Based NLG (Natural Language Generation)
+
+Also possible
+Adding tone to training data and training a transformer to use the tone when giving a response. Also detecting tones from speech that will get treated as the input. Lastly, a memory bank of all responses from the user that will get retrained over time to get a more specified experience.
