@@ -1,17 +1,27 @@
 import os
 import Pushover
-from Gmail import *
-
-from dotenv import load_dotenv
-load_dotenv()
+import Gmail
 
 # Ask for username
-username = input("Please enter phone number: ")
+message = input("Please enter message to send: ")
 
 # Pushover API test
-pushover_api = Pushover.Pushover(os.environ["SEAN_KEY"], os.environ["API_TOKEN"])
-pushover_api.send_notification("This is a quick test. No action needed.", "Test")
+pushover = Pushover.Pushover()
+pushover.send_notification(message, "Test")
 
 
-#test = check_inbox(pushover_api)
+# Gmail API test
+gmail = Gmail.Gmail()
+gmail.sign_in()
 
+flag = True
+
+import time
+while flag:
+    status = gmail.check_inbox()
+    flag = False if status["status"] == "ERROR (Connection)" else True
+    if status["status"] == "MAIL":
+        print(status["payload"],"\n")
+
+
+    time.sleep(5)

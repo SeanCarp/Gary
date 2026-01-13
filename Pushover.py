@@ -1,14 +1,24 @@
-import requests
+import os
+import requests                     # pip install requests
+from dotenv import load_dotenv      # pip install dotenv
+
+from helper import *
 
 class Pushover:
-    user_key = None
-    api_token = None
+    USER_KEY = None
+    API_TOKEN = None
 
-    def __init__(self, key, token):
-        self.user_key = key
-        self.api_token = token
+    def __init__(self) -> None:
+        try:
+            # 1. Configuration/Secrets and Retrieval
+            load_dotenv()
+            self.USER_KEY = os.environ['PUSHOVER_KEY']
+            self.API_TOKEN = os.environ['PUSHOVER_API_TOKEN']
+        except KeyError as e:
+            log("Pushover", f"CRITICAL: Missing environment variable: {e}")
 
-    def send_notification(self, message, title=None, priority=None):
+
+    def send_notification(self, message: str, title=None, priority:int=None) -> int:
         """
         Sends a Push notifcation with the PushOver API
         
@@ -18,10 +28,9 @@ class Pushover:
             :param priority: Notification priority (optional)[-2, 2]"""
         
         URL = 'https://api.pushover.net/1/messages.json'
-
         data = {
-            'user': self.user_key,
-            'token': self.api_token,
+            'user': self.USER_KEY,
+            'token': self.API_TOKEN,
             'message': message,
             'title': title,
             'priority': priority
@@ -32,35 +41,8 @@ class Pushover:
         # Status RESPONSE
         # NOTE: make sure to read the documentation for the different error codes
         if response.status_code == 200:
-            print("Notication sent successfully.")
+            log("Pushover", "Notification sent successfully.")
         else:
-            print("Failed to send notifcation. Err:", response.text)
+            log("Pushover", f"Failed to send notification. Err: {response.text}")
 
-
-    # Chat-GPT answer
-    def send_pushover_notification(self, message, title=None, priority=None):
-        """
-        Send a push notification via Pushover API.
-        
-        :param user_key: User's Pushover user key
-        :param api_token: Your Pushover application API token
-        :param message: Notification message
-        :param title: Notification title (optional)
-        :param priority: Notification priority (optional)
-        """
-        url = 'https://api.pushover.net/1/messages.json'
-        
-        data = {
-            'user': self.user_key,
-            'token': self.api_token,
-            'message': message,
-            'title': title,
-            'priority': priority
-        }
-        
-        response = requests.post(url, data=data)
-        
-        if response.status_code == 200:
-            print("Notification sent successfully.")
-        else:
-            print("Failed to send notification. Error:", response.text)
+        return response.status_code
