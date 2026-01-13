@@ -1,5 +1,6 @@
 __pycache__
 .vscode
+.venv
 .env
 Gary_log
 Brain/training_data.json
