@@ -41,8 +41,8 @@ class Pushover:
         # Status RESPONSE
         # NOTE: make sure to read the documentation for the different error codes
         if response.status_code == 200:
-            log("Pushover", "Notification sent successfully.")
+            log("Pushover", f"INFO: Notification sent successfully. Message: {message[:20]}")
         else:
-            log("Pushover", f"Failed to send notification. Err: {response.text}")
+            log("Pushover", f"CRITICAL: Failed to send notification. Err: {response.text}")
 
         return response.status_code

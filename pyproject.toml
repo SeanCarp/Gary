@@ -5,6 +5,9 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "cupy-cuda13x>=13.6.0",
     "dotenv>=0.9.9",
     "requests>=2.32.5",
+    "scikit-learn>=1.8.0",
+    "spacy>=3.8.11",
 ]

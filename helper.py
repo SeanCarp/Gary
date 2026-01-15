@@ -10,7 +10,7 @@ def log(title:str, message:str) -> None:
     """
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     date = datetime.now().strftime('%Y-%m-%d')
-    with open(f'Gary_log/{title}/{date}_commands.log', 'a') as f:
+    with open(f'Gary_log/{title}/{date}_message.log', 'a') as f:
         if "DEBUG" not in message:
             f.write(f'{timestamp}: {message}\n')
         print(f'{timestamp}: {message}\n')

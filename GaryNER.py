@@ -1,24 +1,27 @@
 import random, json
-import spacy
+import spacy        # pip install spacy
 from pathlib import Path
 from spacy.util import minibatch
 from spacy.training.example import Example
 
+# pip install cupy
 
 class GaryNER:
     """ Gary's Named Entity Recognition system for educational command processing."""
     def __init__(self, training_data_path: str='Brain/training_data.json',
-                 model_save_path: str='Brain', language: str='en', ):
+                 model_save_path: str='Brain', language: str='en'):
         self.training_data_path = training_data_path
         self.model_save_path = model_save_path
         self.language = language
 
-    def train_model(self, iteration:int=100) -> 'spacy.Language':
+    def train_model(self, iteration:int=100, batch_size:int=4, gpu_process:bool=False) -> 'spacy.Language':
         """ Train a spaCy NER model on predefined training data for entity recognitition.
         This function trains the Named Entitiy Recognition (NER) component of a spaCy language model.
 
         Args:
             iteration (optional, int): Num of iterations the model trains on. Defaults to 100
+            batch_size (optional, int): Num of items in a batch when training. Defaults to 4. Keep powers of 2.
+            gpu_process (optional, bool): Whether or not to use the GPU, it is responsbility of the user to make sure CUDA is install. Defaults to False.
 
         Returns:
             spacy.Lanaguage: The trained spaCy modle with updated NER weights. 
@@ -37,8 +40,15 @@ class GaryNER:
                 train_data = json.load(f)
         except Exception as e:
             print(f"Error loading training data, {e}")
-            raise
+            return None
+        
+        # BONUS: Use GPU if asked for
+        if gpu_process:
+            gpu_activated = spacy.prefer_gpu()
+            print(f"Using GPU: {gpu_activated}")
 
+
+        # Creates the NLP object and adds NER
         nlp = spacy.blank(self.language)
         if "ner" not in nlp.pipe_names:
             ner = nlp.add_pipe("ner")
@@ -58,7 +68,7 @@ class GaryNER:
             for i in range(iteration):
                 losses = {}
                 random.shuffle(train_data)
-                batches = minibatch(train_data, size=4)
+                batches = minibatch(train_data, size=batch_size)
                 
                 for batch in batches:
                     examples = []
@@ -75,7 +85,7 @@ class GaryNER:
                     print(f"Stopping: Excellent loss achieved ({current_loss:.4f})")
                     break
 
-                print(f"Losses at iteration {i+1}: {losses}")
+                print(f"Losses at iteration {i+1}: {current_loss}")
         return nlp
 
     def save_model(self, nlp: 'spacy.Language') -> None:
@@ -110,13 +120,16 @@ class GaryNER:
         """ Convert spaCy doc.ents into a dict of label -> text single best hit)."""
         ent_map = {}
         for ent in doc.ents:
-            if ent.label_ not in ent_map:
-                ent_map[ent.label_] = ent.text
+            ent_map.setdefault(ent.label_, []).append({
+                "text": ent.text,
+                "start": ent.start_char,
+                "end": ent.end_char
+            })
         return ent_map
 
 
 if '__main__' == __name__:
     nlp_helper = GaryNER()
     
-    nlp = nlp_helper.train_model()
+    nlp = nlp_helper.train_model(gpu_process=True, batch_size=16)
     nlp_helper.save_model(nlp)

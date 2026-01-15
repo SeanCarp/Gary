@@ -3,6 +3,17 @@ from dotenv import load_dotenv  # pip install dotenv
 
 from helper import *
 
+from enum import Enum, auto
+class GmailStatus(Enum):
+    MAIL = auto()               # Successfully found and parsed a command
+    EMPTY = auto()              # No new emails found
+    ERROR_TIMEOUT = auto()      # IMAP/Network issues 
+    ERROR_CONNECTION = auto()   # Three failed sign-in attempts
+    ERROR_UNVERIFIED = auto()   # Email from unknown sender
+    ERROR_INVALID = auto()      # Email found but no valid attachment/command
+    ERROR_GENERIC = auto()      # Unexpected exceptions
+
+
 class Gmail:
     IMAP_USERNAME = None
     IMAP_PASSWORD = None
@@ -18,25 +29,31 @@ class Gmail:
             return log("Gmail", f"CRITICAL: Missing environment variable: {e}")
         
 
-    def sign_in(self) -> imaplib.IMAP4_SSL | None:
+    def sign_in(self) -> Enum:
         """ 
-        This attempts to sign-in into gmail.
+        This attempts to sign-in into gmail. If it succeeds, then it attaches the mail
+        object to the class instance. If it fails three times to connect it returns an 
+        ERROR_CONNECTION status
         Returns:
-            imaplib.IMAP4_SSL - mail object
-            None - if attempt failed
+            GmailStatus (Enum) -> Status of the GmailStatus
         """
-        try:
-            # 2. Inital Connection and Log-in
-            mail = imaplib.IMAP4_SSL("imap.gmail.com")
-            mail.login(self.IMAP_USERNAME, self.IMAP_PASSWORD)
-            log("Gmail", "INFO: Successful login to email server")
-            self.mail = mail
-            return mail
+        attempts = 0
+        while attempts < 3:
+            try:
+                # 2. Inital Connection and Log-in
+                mail = imaplib.IMAP4_SSL("imap.gmail.com")
+                mail.login(self.IMAP_USERNAME, self.IMAP_PASSWORD)
+                log("Gmail", "INFO: Successful login to email server")
+                self.mail = mail
+                return GmailStatus.MAIL
+            
+            except Exception as e:
+                log("Gmail", f"WARNING: Error during initial login/reconnect: {e}")
+                log("Gmail", "INFO: RETRYING...")
+                attempts += 1
         
-        except Exception as e:
-            log("Gmail", f"CRITICAL: Critical error in check_inbox or during initial login/reconnect: {e}")
-            return None
-
+        log("Gmail", "CRITICAL: THREE FAILED SIGN-IN ATTEMPTS, Retrying in 1 hour")
+        return GmailStatus.ERROR_CONNECTION
 
     def sign_out(self) -> None:
         """
@@ -45,13 +62,12 @@ class Gmail:
         try:
             self.mail.close()
             self.mail.logout()
-            log("Gmail", "Email connection closed.")
+            log("Gmail", "INFO: Email connection closed.")
         except:
-            log("Gmail", "Email sign-out failed.")
+            log("Gmail", "WARNING: Email sign-out failed.")
 
 
-    def check_inbox(self) -> dict[str, str|None]:
-        # TODO: These should be enums not dicts
+    def check_inbox(self) -> dict:
         """
         Checks for unseen emails, marks them as read and returns the text and attachment
         Args:
@@ -64,29 +80,23 @@ class Gmail:
             ok, inbox = self.mail.search(None, 'UNSEEN')
             email_list = inbox[0].split() # The list of email objects
 
-            if email_list:
-                log("Gmail", f"INFO: Found {len(email_list)} unseen emails. Processing...")
-
-                for m in email_list:
-                    try:
-                        return read_email(m, self.mail)
-                    
-                    except IndexError as e:
-                        log("Gmail", f"ERROR: Email processing failed (IndexError, likely bad message format): {e}")
-                        return {"status": "ERROR ()"}
-                    except Exception as e:
-                        log("Gmail", f"ERROR: Unexpected error processing email: {e}")
-                        return {"status": "ERROR (Unexpected)"}
-            else:
+            if not email_list:
                 log("Gmail", "DEBUG: No unseen emails found.")
-                return {"status": "EMPTY"}
+                return [{"status": GmailStatus.EMPTY}]
+            
+            all_results = []            
+            for m in email_list:
+                result = read_email(m, self.mail)
+                all_results.append(result)
 
+            return all_results
+            
         except imaplib.IMAP4.abort as e:
-            log("Gmail", f"WARNING: IMAP connection aborted: {e}. Try reconnecting.")
-            return {"status": "ERROR (Connection)"} 
+            log("Gmail", f"WARNING: IMAP connection aborted: {e}")
+            return {"status": GmailStatus.ERROR_TIMEOUT}
         
 
-def read_email(email_id:str, mail: imaplib.IMAP4_SSL) -> str:
+def read_email(email_id:str, mail: imaplib.IMAP4_SSL) -> dict:
     """ 
     Process individual email and extract commands from attachments
     Args:
@@ -101,8 +111,7 @@ def read_email(email_id:str, mail: imaplib.IMAP4_SSL) -> str:
     from_email = email_message['from'] # Extracts FROM
 
     if check_user(from_email): # Checks if verified user
-        log("Gmail", f"Processing email from verified user: {from_email}")
-        command_found = False
+        log("Gmail", f"INFO: Processing email from verified user: '{from_email}'")
 
         for part in email_message.walk():
             # Skip multipart containers
@@ -114,24 +123,20 @@ def read_email(email_id:str, mail: imaplib.IMAP4_SSL) -> str:
             if fileName is not None and '.txt' in fileName.lower():
                 try:
                     command = part.get_payload(decode=True).decode('utf-8').strip()
-                    command_found = True
-                    log("Gmail", f"Command extract from: {command}\n")
                     break
                 except UnicodeDecodeError as e:
-                    log("Gmail", f"Failed to decode attachment {fileName}: {e}")
+                    log("Gmail", f"CRITICAL: Failed to decode attachment {fileName}: {e}")
 
-        if command_found and command:   # Command_found seems redundant
-            log("Gmail", f'Received email from" {from_email}')
-            log("Gmail", f'Command: {command}')
-            return {"status": "MAIL", "payload": command}
+        if command:
+            return {"status": GmailStatus.MAIL, "payload": command}
         
         else:       # Not sure this ever gets triggered
-            log("Gmail", f"No valid command found in email from {from_email}")
-            return {"status": "ERROR (Invalid Command)"}
+            log("Gmail", f"WARNING: No valid command found in email from '{from_email}'")
+            return {"status": GmailStatus.ERROR_INVALID}
 
     else:        # This might send notifications latter
-        log("Gmail", f"Received email from UNVERIFIED user: {from_email}")
-        return {"status": "ERROR (Unverified User)"}
+        log("Gmail", f"WARNING: Received email from UNVERIFIED user: '{from_email}'")
+        return {"status": GmailStatus.ERROR_UNVERIFIED}
 
 def check_user(user: str, filename:str='Gary_log/user_list.txt') -> bool:
     """ Verifies the user to make sure that they are in the list of 

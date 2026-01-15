@@ -10,7 +10,7 @@ class Grade_Checker:
         """ Initialize a new Grade_Checker instance.
         Creates an empty list to store Class objects.
         """
-        self.filename = "Gary/school_grades.pkl"
+        self.filename = "Gary_log/school_grades.pkl"
         self.classes = []
         self.class_grades = []
 
