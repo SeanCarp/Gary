@@ -1,9 +1,9 @@
-import pickle, json, os
+import pickle, json, glob, os
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model  import LogisticRegression
 
 class GaryIntentClassifier:
-    def __init__(self, training_data_path: str='Brain/training_data.json',
+    def __init__(self, training_data_path: str='Brain/training_data',
                  model_path="Brain/intent.pkl"):
         self.model_path = model_path
         self.training_data_path = training_data_path
@@ -13,9 +13,12 @@ class GaryIntentClassifier:
         #return self.load()
 
     def train(self):
+        train_data = []
         try:
-            with open(self.training_data_path, 'r') as f:
-                train_data = json.load(f)
+            file_paths = glob.glob(os.path.join(self.training_data_path, "*.json"))
+            for file_path in file_paths:
+                with open(file_path, 'r') as f:
+                    train_data.extend(json.load(f))
         except Exception as e:
             print(f"Error laoding training data, {e}")
             return None
@@ -25,7 +28,7 @@ class GaryIntentClassifier:
 
         self.vectorizer = TfidfVectorizer(ngram_range=(1,2))
         X = self.vectorizer.fit_transform(texts)
-        self.classifier = LogisticRegression()
+        self.classifier = LogisticRegression(class_weight='balanced')
         self.classifier.fit(X, labels)
         print("Intent Classifier Trained")
 

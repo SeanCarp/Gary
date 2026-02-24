@@ -1,4 +1,4 @@
-import random, json
+import random, json, glob, os
 import spacy        # pip install spacy
 from pathlib import Path
 from spacy.util import minibatch
@@ -8,7 +8,7 @@ from spacy.training.example import Example
 
 class GaryNER:
     """ Gary's Named Entity Recognition system for educational command processing."""
-    def __init__(self, training_data_path: str='Brain/training_data.json',
+    def __init__(self, training_data_path: str='Brain/training_data',
                  model_save_path: str='Brain', language: str='en'):
         self.training_data_path = training_data_path
         self.model_save_path = model_save_path
@@ -35,9 +35,12 @@ class GaryNER:
             - .from_dict() matches the annotations with the tokenizations
             - .update() does back propagation
         """
+        train_data = []
         try:
-            with open(self.training_data_path, 'r') as f:
-                train_data = json.load(f)
+            file_paths = glob.glob(os.path.join(self.training_data_path, "*.json"))
+            for file_path in file_paths:
+                with open(file_path, 'r') as f:
+                    train_data.extend(json.load(f))
         except Exception as e:
             print(f"Error loading training data, {e}")
             return None

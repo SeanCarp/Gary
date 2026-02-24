@@ -3,4 +3,4 @@ __pycache__
 .venv
 .env
 Gary_log
-Brain/training_data.json
+Brain/training_data
