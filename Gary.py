@@ -1,4 +1,5 @@
 from APPS.Grade_Checker_GARY_API import Grade_Checker, Result
+from APPS.Train_API import Train
 #import APPS.MDLottery3
 
 import Pushover
@@ -32,6 +33,7 @@ if '__main__' == __name__:
 
     # APPs
     doodle_hopper = Grade_Checker()
+    baymax = Train()
 
     failed_sessions = 0
     while True:
@@ -63,18 +65,29 @@ if '__main__' == __name__:
                         log("Command", f"INFO: Command: '{command}'")
 
                         # TODO: Intent
-                        #intent = classifier.predict(res['payload'])
+                        intent = classifier.predict(command)
+                        print("Intent:", intent)
 
                         # TODO: NER
-                        # doc = nlp(text)
-                        # entities = nlp_helper.extract_entities(doc)
+                        doc = ner(command)
+                        entities = ner_helper.extract_entities(doc)
 
                         # TODO: EXECUTE
-                        # result = doodle_hopper.parse_command(entities)
+                        if intent == "grade_checker":
+                            result = doodle_hopper.parse_command(entities)
+                            log("Result", f"{result.success}: {result.message}. Additional: {result.data}")
+                            pushover.send_notification("Grade Checker", result.message)
+
+                        elif intent == "train":
+                            result = baymax.train()
+                            pushover.send_notification("Train", result.message)
+                        else:
+                            pushover.send_notification(f"Intent FAIL: {intent}", command)
 
                         # TODO: RESPONSED
+                        #pushover.send_notification("Grade Checker", command)
 
-                        pushover.send_notification("Grade Checker", command)
+
         except Exception as e:
             log("Gmail", f"WARNING: Work loop interrupted (likely connection drop): {e}")
 

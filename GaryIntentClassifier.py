@@ -27,6 +27,7 @@ class GaryIntentClassifier:
         X = self.vectorizer.fit_transform(texts)
         self.classifier = LogisticRegression()
         self.classifier.fit(X, labels)
+        print("Intent Classifier Trained")
 
     def predict(self, text: str) -> str:
         # Assumes that model is trained and loaded
@@ -58,4 +59,5 @@ class GaryIntentClassifier:
 if '__main__' == __name__:
     intent = GaryIntentClassifier()
     intent.train()
+    intent.save()
     intent.load()

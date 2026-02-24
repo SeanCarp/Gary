@@ -129,7 +129,7 @@ class GaryNER:
 
 
 if '__main__' == __name__:
-    nlp_helper = GaryNER()
+    ner_helper = GaryNER()
     
-    nlp = nlp_helper.train_model(gpu_process=True, batch_size=16)
-    nlp_helper.save_model(nlp)
+    nlp = ner_helper.train_model(gpu_process=True, batch_size=16)
+    ner_helper.save_model(nlp)

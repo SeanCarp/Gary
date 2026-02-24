@@ -73,7 +73,7 @@ class Gmail:
         Args:
             mail (imaplib.IMAP4_SSL) - mail object
         Returns:
-            (str, object) - string is text/command sent, object is the attachment in the message.
+            [{status, str}] - status is Enum. string is text/command sent, object is the attachment in the message.
         """
         try:
             self.mail.select('inbox')
@@ -93,7 +93,7 @@ class Gmail:
             
         except imaplib.IMAP4.abort as e:
             log("Gmail", f"WARNING: IMAP connection aborted: {e}")
-            return {"status": GmailStatus.ERROR_TIMEOUT}
+            return [{"status": GmailStatus.ERROR_TIMEOUT}]
         
 
 def read_email(email_id:str, mail: imaplib.IMAP4_SSL) -> dict:
