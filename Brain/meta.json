@@ -21,9 +21,11 @@
       "ACTION",
       "BLOWOUT",
       "CLASS",
+      "MODEL",
       "POINTS",
       "SCORE",
-      "SECTION"
+      "SECTION",
+      "TYPE"
     ]
   },
   "pipeline":[

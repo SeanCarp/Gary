@@ -5,7 +5,8 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 
-import GaryNER, GaryIntentClassifier, Result
+import GaryNER, GaryIntentClassifier
+from Result import Result
 class Train:
     """ This class loads all the models and then it trains them
     and saves them back for use again."""
@@ -28,9 +29,9 @@ class Train:
             # Classifier
             self.classifier.train()
             self.classifier.save()
-            return Result.Result(True, "Models trained successfully.")
+            return [Result(True, "Models trained successfully.")]
         except Exception as e:
-            return Result.Result(False, f"{e}: Error training models")
+            return [Result(False, f"{e}: Error training models")]
         
 if __name__ == "__main__":
     test = Train()

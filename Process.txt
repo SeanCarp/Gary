@@ -8,3 +8,29 @@ User input ->
 
 Also possible
 Adding tone to training data and training a transformer to use the tone when giving a response. Also detecting tones from speech that will get treated as the input. Lastly, a memory bank of all responses from the user that will get retrained over time to get a more specified experience.
+
+
+To Install Boot Image:
+$ sudo apt install fbi
+
+Test:
+$ sudo fbi -T 1 -a /home/swcar/GaryImg.png
+
+sudo nano /etc/systemd/system/GaryBootImg.service
+
+[Unit]
+Description=Show Boot Image
+After=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/fbi -T 1 -a /home/swcar/GaryImg.png
+StandardInput=tty
+TTYPath=/dev/tty1
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+
+$ sudo systemctl daemon-reload
+$ sudo systemctl enable GARYBootImg.service

@@ -152,6 +152,9 @@ def check_user(user: str, filename:str='Gary_log/user_list.txt') -> bool:
     For future features:
     Have a randomly generated question, for a user not in the text file.
     """
+    # FOR DEMO:
+    return True
+
     # Checks if file exists
     if os.path.exists(filename):
         with open(filename, '+r') as outp:

@@ -1,6 +1,6 @@
 from APPS.Grade_Checker_GARY_API import Grade_Checker, Result
 from APPS.Train_API import Train
-#import APPS.MDLottery3
+from APPS.Scrape_API import Scrape
 
 import Pushover
 from Gmail import Gmail, GmailStatus
@@ -11,13 +11,16 @@ from helper import *
 from threading import Thread
 import time, sys
 
+def process_results(results, module_name):
+    """Uniformly logs and notifies for single or multiple Results."""
+    if not isinstance(results, list):
+        results = [results]
+    
+    for res in results:
+        data_str = f". Additional: {res.data}" if res.data else ""
+        log("Results", f"{res.success}: {res.message}{data_str}")
 
-def process_command(text:str, nlp, nlp_helper:GaryNER.GaryNER) -> None:
-    """ This is where the intent pipeline goes"""
-    doc = nlp(text)
-    entities = nlp_helper.extract_entities(doc)
-    result = doodle_hopper.parse_command(entities)
-    print(result.message)
+        pushover.send_notification(res.message, module_name)
 
 
 if '__main__' == __name__:
@@ -34,6 +37,7 @@ if '__main__' == __name__:
     # APPs
     doodle_hopper = Grade_Checker()
     baymax = Train()
+    walle = Scrape()
 
     failed_sessions = 0
     while True:
@@ -59,34 +63,32 @@ if '__main__' == __name__:
 
                     if res['status'] == GmailStatus.MAIL:
                         command = res['payload']
-                        print(f"Executing: {command}")
 
                         # MAIN CODE LOGIC
                         log("Command", f"INFO: Command: '{command}'")
 
-                        # TODO: Intent
                         intent = classifier.predict(command)
-                        print("Intent:", intent)
+                        log("Command", f"INFO: Intent: '{intent}'")
 
-                        # TODO: NER
                         doc = ner(command)
                         entities = ner_helper.extract_entities(doc)
 
                         # TODO: EXECUTE
                         if intent == "grade_checker":
-                            result = doodle_hopper.parse_command(entities)
-                            log("Result", f"{result.success}: {result.message}. Additional: {result.data}")
-                            pushover.send_notification("Grade Checker", result.message)
+                            results = doodle_hopper.parse_command(entities)
+                            process_results(results, "Grade Checker")
 
                         elif intent == "train":
-                            result = baymax.train()
-                            pushover.send_notification("Train", result.message)
+                            results = baymax.train()
+                            process_results(results, "Baymax Training")
+
+                        elif intent == "scrape":
+                            results = walle.parse_command(entities)
+                            process_results(results, "Wall-E Scraper")
+
                         else:
+                            log("System", f"Intent FAIL: {intent} for command: {command}")
                             pushover.send_notification(f"Intent FAIL: {intent}", command)
-
-                        # TODO: RESPONSED
-                        #pushover.send_notification("Grade Checker", command)
-
 
         except Exception as e:
             log("Gmail", f"WARNING: Work loop interrupted (likely connection drop): {e}")

@@ -1,6 +1,7 @@
 import sys, os, time, pickle
 from datetime import datetime
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from Result import Result
 
 from bs4 import BeautifulSoup
 from selenium import webdriver
@@ -21,8 +22,8 @@ TOP_40_LINK = 'https://www.mdlottery.com/news/top-40-scratch-offs/'
 SCRATCH_LINK = 'https://www.mdlottery.com/games/scratch-offs/'
 
 date = datetime.now().strftime('%m-%d')
-LINKS_PICKLE = f"Gary/Scraped_Data/{date}_40_links.pkl"
-TICKET_DATA_PICKLE = f"Gary/Scraped_Data/{date}_ticket_data.pkl"
+LINKS_PICKLE = f"Gary_log/Scraped_Data/{date}_40_links.pkl"
+TICKET_DATA_PICKLE = f"Gary_log/Scraped_Data/{date}_ticket_data.pkl"
 
 def load_pickle(PICKLE_FILE:str, function, *args):
     """ Loads pickle if it exists, otherwise runs function
@@ -174,10 +175,29 @@ def recalculate_odds(ticket_data:list, threshold:float=1.015) -> list:
             better_odds.append([title, price, top_prize, new_odds, odds, percentage])
     return better_odds
 
-def main() -> list:
-    tickets = load_pickle(LINKS_PICKLE, scrape_top_40, TOP_40_LINK)
-    ticket_data = load_pickle(TICKET_DATA_PICKLE, scrape_scratch, SCRATCH_LINK, tickets)
-    return recalculate_odds(ticket_data)
+def pretty_print(data:list[list]) -> None:
+    """ Cleans up the print statement for the notification """
+    """ Data: [list[list]] = [[title, price, top_prize, new_odds, odds, percentage]]"""
+    output = ""
+    for ticket in data:
+        try:
+            title, price, top_prize, new_odds, odds, percentage = ticket
+            output += f"{title}, Price: ${price}, Top Prize: {top_prize}\n\
+                Odds: {odds}, New Odds: {new_odds}, {percentage}\n\n"
+        except Exception as e:
+            return e
+    return output
+
+def main() -> 'Result':
+    try:
+        tickets = load_pickle(LINKS_PICKLE, scrape_top_40, TOP_40_LINK)
+        ticket_data = load_pickle(TICKET_DATA_PICKLE, scrape_scratch, SCRATCH_LINK, tickets)
+        data = recalculate_odds(ticket_data)
+        return Result(True, pretty_print(data))
+    
+    except Exception as e:
+        return Result(False, f"Error scraping MDLottery: {e}")
+    
 
 
 if __name__ == '__main__':

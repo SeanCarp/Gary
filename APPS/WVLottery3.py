@@ -1,5 +1,6 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from Result import Result
 
 LINK = 'https://www.wvlottery.com/games/scratch-offs'
 
@@ -16,3 +17,9 @@ def emulate_webbrowser(link):
 
     html = driver.page_source
     
+def main() -> 'Result':
+    try:
+        print("FUCK")
+    
+    except Exception as e:
+        return Result(False, f"Error scraping MDLottery: {e}")

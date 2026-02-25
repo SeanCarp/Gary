@@ -1,5 +1,5 @@
 import pickle, os, re
-import Result
+from Result import Result
 
 class Grade_Checker:
     """ A class to manage and track grades across multiple classes.
@@ -203,10 +203,9 @@ class Grade_Checker:
         except Exception as e:
             return print(f"Error loading data: {e}")
         
-    def parse_command(self, entities:dict) -> 'Result':
+    def parse_command(self, entities:dict) -> list['Result']:
         """Parse Natural Language entities and execute corresponding grade checker
         Args:
-            doodle_hopper (Grade_Checker):  The grade checker instance to perform operations
             entities (tuple):   Collection of named entities extracted from user input, 
                                 where each entity has a label
 
@@ -237,7 +236,16 @@ class Grade_Checker:
             Score format must contain exactly two numbers for grade operations.
             All action keywords are case-insensitive.
             What happens if someone enters multiple actions?
-            Can this method be within the Grade_Checker API?
+
+            Currently, the script requires "Add CS103 and Add CS104, then check my grades"
+            But "Add CS103 and CS104" will fail. To bridge this gap, we need to:
+
+            1. State Tracking: The parser "remembers" the last action it saw. It will assume 
+            the user wants to keeping doing whatever they were just doing.
+
+            2. Dependency Parse: spaCy can build a tree of how words relate to each other.
+
+            Possible Solution is to loop through classes and carry the action forward.
         """
 
         # MUST BE LOWERCASE
@@ -245,52 +253,78 @@ class Grade_Checker:
         add_action = ["add", "create", "make", "tracking"]
         check_action = ["check", "show", "calculate", "display"]
 
-        action = entities.get("ACTION", None)
-        class_name = entities.get("CLASS", None)
-        section = entities.get("SECTION", None)
-        points = entities.get("POINTS", None)
-        score = entities.get("SCORE", None)
-        blowout = entities.get("BLOWOUT", None)
+        action_ents = entities.get("ACTION", [])
+        class_name = entities.get("CLASS", [])
+        section = entities.get("SECTION", [])
+        points = entities.get("POINTS", [])
+        score = entities.get("SCORE", [])
+        blowout = entities.get("BLOWOUT", [])
 
         if not action:
-            return Result(False, "No action specified", entities)
-        action = action.lower()
+            return [Result(False, "No action specified", entities)]
 
+        results = []
+        for i, act_ent in enumerate(action_ents):
+            action = act_ent.get("text", "").lower()
 
-        # This is a funneling down of most specific to least
-        # Grade Operations
-        if class_name and section and score:
-            numbers = [float(n) for n in re.findall(r'\d+', str(score))]
-            if len(numbers) != 2:
-                return Result(False, "Failed to add/remove grade. (Incorrect score format)", entities)
-            
-            if action in remove_action:
-                return self.remove_grade(class_name, section, numbers[0], numbers[1])
-            elif action in add_action:
-                return self.add_grade(class_name, section, numbers[0], numbers[1])   
+            def get_ent_text(label, index):
+                ents = entities.get(label, [])
+                if not ents:
+                    return None
+                return ents[index]["text"] if index < len(ents) else ents[0]["text"]
 
-        # Section Operations
-        elif class_name and section:
-            if action in remove_action:
-                return self.remove_section(class_name, section)
-            
-            elif points and action in add_action:
-                return self.add_section(class_name, section, float(points))
+            class_name = get_ent_text("CLASS", i)
+            section = get_ent_text("SECTION", i)
+            points = get_ent_text("POINTS", i)
+            score = get_ent_text("SCORE", i)
+            blowout = get_ent_text("BLOWOUT", i)
 
-        # Class Operations
-        elif class_name:
-            if action in remove_action:
-                return self.remove_class(class_name)
-            elif action in add_action:
-                return self.add_class(class_name)
-            
-        # Check Grades Operations
-        if action in check_action:
-            if class_name:
-                return self.check_grade(class_name, bool(blowout))
-            return self.check_grades()
-        
-        return Result(False, "Invalid command combination", entities)
+            # FUNNEL LOGIC
+
+            # This is a funneling down of most specific to least
+            # Grade Operations
+            if class_name and section and score:
+                numbers = [float(n) for n in re.findall(r'\d+', str(score))]
+                if len(numbers) != 2:
+                    results.append(Result(False, "Failed to add/remove grade. (Incorrect score format)", entities))
+                    continue
+
+                if action in remove_action:
+                    results.append(self.remove_grade(class_name, section, numbers[0], numbers[1]))
+                elif action in add_action:
+                    results.append(self.add_grade(class_name, section, numbers[0], numbers[1]))  
+                continue
+
+            # Section Operations
+            elif class_name and section:
+                if action in remove_action:
+                    results.append(self.remove_section(class_name, section))
+                
+                elif points and action in add_action:
+                    results.append(self.add_section(class_name, section, float(points)))
+                else:
+                    results.append(Result(False, f"Invalid section action or missing points: '{action}'", entities))
+                continue
+
+            # Class Operations
+            elif class_name:
+                if action in remove_action:
+                    results.append(self.remove_class(class_name))
+                elif action in add_action:
+                    results.append(self.add_class(class_name))
+                elif action in check_action:
+                    results.append(self.check_grade(class_name, bool(blowout)))
+                else:
+                    results.append(Result(False, f"Action '{action}' not supported for classes", entities))
+                continue
+
+            # Check Grades Operations
+            if action in check_action:
+                results.append(self.check_grades())
+                continue
+
+            results.append(Result(False, f"Invalid command combination for action: '{action}'", entities))
+        return results
 
     class Class:
         """ A nested class representing an indiviual academic class with sections and points."""
