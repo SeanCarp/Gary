@@ -1,6 +1,6 @@
 from Result import Result
-import APPS.MDLottery3 as MDLottery
-import APPS.WVLottery3 as WVLottery
+import APPS.Lottery.MDLottery3 as MDLottery
+import APPS.Lottery.WVLottery3 as WVLottery
 from helper import *
 
 class Scrape:
