@@ -4,16 +4,12 @@ import APPS.Lottery.WVLottery3 as WVLottery
 from helper import *
 
 class Scrape:
-    """ A class to manage which scrape scripts to run.
-    """
-
+    """ A class to manage which scrape scripts to run. """
     def __init__(self) -> None:
-        """ Initialize a new Class instance."""
         return
     
     def parse_command(self, entities:dict) -> list['Result']:
-        """Parse Natural Language entities and execute corresponding 
-        scraping script
+        """Parse Natural Language entities and execute corresponding scraping script
         Args:
             entities (tuple):   Collection of names entities extracted from 
                                 user input, where each entitiy has a label
