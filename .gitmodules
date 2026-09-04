@@ -1,0 +1,3 @@
+[submodule "src/Apps/Lottery"]
+	path = src/Apps/Lottery
+	url = https://github.com/SeanCarp/Lottery-Scrapper.git
