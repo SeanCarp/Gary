@@ -1,12 +1,12 @@
-from APPS.Grade_Checker_GARY_API import Grade_Checker, Result
-from APPS.Train_API import Train
-from APPS.Scrape_API import Scrape
+from src.APPS.Grade_Checker_GARY_API import Grade_Checker, Result
+from src.APPS.Train_API import Train
+from src.APPS.Scrape_API import Scrape
 
-import Pushover
-from Gmail import Gmail, GmailStatus
-import GaryNER, GaryIntentClassifier
+import src.Pushover as Pushover
+from src.Gmail import Gmail, GmailStatus
+import src.GaryNER as GaryNER, src.GaryIntentClassifier as GaryIntentClassifier
 
-from helper import *
+from Gary_log.helper import *
 
 from threading import Thread
 import time, sys
@@ -22,9 +22,8 @@ def process_results(results, module_name):
 
         pushover.send_notification(res.message, module_name)
 
-
-if '__main__' == __name__:
-    # Communication Objects
+def main():
+# Communication Objects
     pushover = Pushover.Pushover()
     gmail = Gmail()
 
@@ -93,21 +92,5 @@ if '__main__' == __name__:
         except Exception as e:
             log("Gmail", f"WARNING: Work loop interrupted (likely connection drop): {e}")
 
-
-# doc = nlp("Add section called Finals worth 40 points to MAE411")
-# entities = nlp_helper.extract_entities(doc)
-# print(doodle_hopper.parse_command(entities).message)
-
-# doc = nlp("Add grade of 34/35 to Finals in MAE411")
-# entities = nlp_helper.extract_entities(doc)
-# print(doodle_hopper.parse_command(entities).message)
-
-
-# doc = nlp("Please all mythical GARY, show me my grades for MAE411")
-# entities = nlp_helper.extract_entities(doc)
-# print(doodle_hopper.parse_command(entities).message)
-
-# doc = nlp("Delete MAE411 from my classes")
-# entities = nlp_helper.extract_entities(doc)
-# print(doodle_hopper.parse_command(entities).message)
-# # Might not be updating the file
+if '__main__' == __name__:
+    main()

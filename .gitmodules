@@ -1,6 +1,0 @@
-[submodule "APPS/Lottery"]
-	path = APPS/Lottery
-	url = https://github.com/SeanCarp/Lottery-Scrapper.git
-[submodule "src/Apps"]
-	path = src/Apps
-	url = https://github.com/SeanCarp/Lottery-Scrapper.git
